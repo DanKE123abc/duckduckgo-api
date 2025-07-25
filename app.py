@@ -15,47 +15,47 @@ def run():
         max_results = int(request.form.get('max_results', 10))
     else:
         keywords = request.args.get('q')
-        # 从请求参数中获取最大结果数，如果未指定，则默认为10
         max_results = int(request.args.get('max_results', 10))
     return keywords, max_results
 
 
 @app.route('/suggest', methods=['GET', 'POST'])
-def suggest():
-    keywords, _ = run()  
+async def suggest():
+    keywords, _ = run()
+    
     # 构建 Bing API 请求 URL
     encoded_query = quote(keywords.encode('utf8'))
     url = f"https://sg1.api.bing.com/qsonhs.aspx?type=cb&cb=callback&q={encoded_query}&PC=EMMX01"
     
     try:
-        # 发送请求到 Bing API
-        response = requests.get(url, timeout=5)
-        response.raise_for_status()
-        
-        # 提取 JSON 部分
-        start_idx = response.text.find('{')
-        end_idx = response.text.rfind('}') + 1
-        if start_idx == -1 or end_idx == -1:
-            return {"error": "无效的响应格式"}, 500
-            
-        json_str = response.text[start_idx:end_idx]
-        data = json.loads(json_str)
-        
-        # 提取所有建议词的文本
-        suggestions = []
-        for result in data.get("AS", {}).get("Results", []):
-            for suggest in result.get("Suggests", []):
-                text = suggest.get("Txt")
-                if text:  # 确保文本不为空
-                    suggestions.append(text)
-        
-        # 返回精简结果 - 只包含建议词列表
-        return {"suggestions": suggestions}
-        
-    except requests.exceptions.RequestException as e:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as response:
+                response.raise_for_status()
+                response_text = await response.text()
+                
+                # 提取 JSON 部分
+                start_idx = response_text.find('{')
+                end_idx = response_text.rfind('}') + 1
+                if start_idx == -1 or end_idx == -1:
+                    return {"error": "无效的响应格式"}, 500
+                    
+                json_str = response_text[start_idx:end_idx]
+                data = json.loads(json_str)
+                
+                # 提取所有建议词的文本
+                suggestions = []
+                for result in data.get("AS", {}).get("Results", []):
+                    for suggest in result.get("Suggests", []):
+                        text = suggest.get("Txt")
+                        if text:  # 确保文本不为空
+                            suggestions.append(text)
+                return {"suggestions": suggestions}
+                
+    except aiohttp.ClientError as e:
         return {"error": f"API请求失败: {str(e)}"}, 500
     except (json.JSONDecodeError, KeyError) as e:
         return {"error": f"解析失败: {str(e)}"}, 500
+
 @app.route('/search', methods=['GET', 'POST'])
 async def search():
     keywords, max_results = run()
