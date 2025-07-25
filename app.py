@@ -1,17 +1,14 @@
-import asyncio
+from itertools import islice
 import json
 import aiohttp
 from urllib.parse import quote
 from duckduckgo_search import DDGS
-from flask import Flask, request, jsonify
-from readability import Document
-from lxml.html import fromstring
-from itertools import islice
+from flask import Flask, request
 
 app = Flask(__name__)
 
+
 def run():
-    """解析请求参数"""
     if request.method == 'POST':
         keywords = request.form['q']
         max_results = int(request.form.get('max_results', 10))
@@ -20,34 +17,6 @@ def run():
         max_results = int(request.args.get('max_results', 10))
     return keywords, max_results
 
-async def fetch_webpage_text(url, max_chars=10000):
-    """异步获取网页并提取纯净文本内容"""
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-    }
-    
-    try:
-        async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(url, timeout=10) as response:
-                response.raise_for_status()
-                html = await response.text()
-                
-                # 提取正文内容
-                doc = Document(html)
-                content_html = doc.summary()
-                
-                # 转换为纯文本并清理
-                tree = fromstring(content_html)
-                text = " ".join(tree.itertext()).replace("\n", " ").strip()
-                
-                # 根据max_results截取字符
-                return text[:max_chars]
-                
-    except Exception as e:
-        error_msg = f"Error fetching {url}: {str(e)[:100]}"
-        return error_msg
 
 @app.route('/suggest', methods=['GET', 'POST'])
 async def suggest():
@@ -130,23 +99,6 @@ async def search_videos():
     # 返回一个json响应，包含搜索结果
     return {'results': results}
 
-@app.route('/fetch', methods=['GET', 'POST'])
-async def fetch():
-    url, max_chars = run()
-    
-    # 如果max_results为0，则使用默认值10000
-    if max_chars == 0:
-        max_chars = 10000
-    
-    content = await fetch_webpage_text(url, max_chars)
-    
-    # 返回JSON格式响应
-    return jsonify({
-        "url": url,
-        "content": content,
-        "character_count": len(content),
-        "max_characters": max_chars
-    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
