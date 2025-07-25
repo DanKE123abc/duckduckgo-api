@@ -1,5 +1,8 @@
 from itertools import islice
-
+import json
+import re
+import requests
+from urllib.parse import quote
 from duckduckgo_search import DDGS
 from flask import Flask, request
 
@@ -19,9 +22,7 @@ def run():
 
 @app.route('/suggest', methods=['GET', 'POST'])
 def suggest():
-    """获取搜索建议"""
-    keywords, _ = run()  # 不需要 max_results 参数
-    
+    keywords, _ = run()  
     # 构建 Bing API 请求 URL
     encoded_query = quote(keywords.encode('utf8'))
     url = f"https://sg1.api.bing.com/qsonhs.aspx?type=cb&cb=callback&q={encoded_query}&PC=EMMX01"
@@ -29,43 +30,32 @@ def suggest():
     try:
         # 发送请求到 Bing API
         response = requests.get(url, timeout=5)
-        response.raise_for_status()  # 检查 HTTP 错误
+        response.raise_for_status()
         
-        # 直接解析响应内容
-        try:
-            # 提取 JSON 部分（去除 JSONP 包装）
-            start_idx = response.text.find('{')
-            end_idx = response.text.rfind('}') + 1
-            if start_idx == -1 or end_idx == -1:
-                return {"error": "无效的响应格式"}, 500
-                
-            json_str = response.text[start_idx:end_idx]
-            data = json.loads(json_str)
+        # 提取 JSON 部分
+        start_idx = response.text.find('{')
+        end_idx = response.text.rfind('}') + 1
+        if start_idx == -1 or end_idx == -1:
+            return {"error": "无效的响应格式"}, 500
             
-            # 提取建议词
-            suggestions = []
-            for result in data.get("AS", {}).get("Results", []):
-                for suggest in result.get("Suggests", []):
-                    suggestions.append({
-                        "text": suggest.get("Txt", ""),
-                        "type": suggest.get("Type", ""),
-                        "score": suggest.get("Sk", ""),
-                        "hcs": suggest.get("HCS", 0)
-                    })
-            
-            # 返回结构化结果
-            return {
-                "query": data.get("AS", {}).get("Query", ""),
-                "full_results": data.get("AS", {}).get("FullResults", 0),
-                "suggestions": suggestions
-            }
-            
-        except (json.JSONDecodeError, KeyError) as e:
-            return {"error": f"解析失败: {str(e)}"}, 500
+        json_str = response.text[start_idx:end_idx]
+        data = json.loads(json_str)
+        
+        # 提取所有建议词的文本
+        suggestions = []
+        for result in data.get("AS", {}).get("Results", []):
+            for suggest in result.get("Suggests", []):
+                text = suggest.get("Txt")
+                if text:  # 确保文本不为空
+                    suggestions.append(text)
+        
+        # 返回精简结果 - 只包含建议词列表
+        return {"suggestions": suggestions}
         
     except requests.exceptions.RequestException as e:
         return {"error": f"API请求失败: {str(e)}"}, 500
-
+    except (json.JSONDecodeError, KeyError) as e:
+        return {"error": f"解析失败: {str(e)}"}, 500
 @app.route('/search', methods=['GET', 'POST'])
 async def search():
     keywords, max_results = run()
