@@ -70,7 +70,7 @@ async def search():
     return {'results': results}
 
 
-@app.route('/searchImages', methods=['GET', 'POST'])
+@app.route('/search_images', methods=['GET', 'POST'])
 async def search_images():
     keywords, max_results = run()
     results = []
@@ -85,7 +85,7 @@ async def search_images():
     return {'results': results}
 
 
-@app.route('/searchVideos', methods=['GET', 'POST'])
+@app.route('/search_videos', methods=['GET', 'POST'])
 async def search_videos():
     keywords, max_results = run()
     results = []
