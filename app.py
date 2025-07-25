@@ -132,7 +132,6 @@ async def search_videos():
 
 @app.route('/fetch', methods=['GET', 'POST'])
 async def fetch():
-    """阅读模式API - 提取网页正文并返回纯文本"""
     url, max_chars = run()
     
     # 如果max_results为0，则使用默认值10000
