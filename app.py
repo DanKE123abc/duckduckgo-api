@@ -1,7 +1,6 @@
 from itertools import islice
 import json
-import re
-import requests
+import aiohttp
 from urllib.parse import quote
 from duckduckgo_search import DDGS
 from flask import Flask, request
