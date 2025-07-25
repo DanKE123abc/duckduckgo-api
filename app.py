@@ -17,6 +17,55 @@ def run():
     return keywords, max_results
 
 
+@app.route('/suggest', methods=['GET', 'POST'])
+def suggest():
+    """获取搜索建议"""
+    keywords, _ = run()  # 不需要 max_results 参数
+    
+    # 构建 Bing API 请求 URL
+    encoded_query = quote(keywords.encode('utf8'))
+    url = f"https://sg1.api.bing.com/qsonhs.aspx?type=cb&cb=callback&q={encoded_query}&PC=EMMX01"
+    
+    try:
+        # 发送请求到 Bing API
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()  # 检查 HTTP 错误
+        
+        # 直接解析响应内容
+        try:
+            # 提取 JSON 部分（去除 JSONP 包装）
+            start_idx = response.text.find('{')
+            end_idx = response.text.rfind('}') + 1
+            if start_idx == -1 or end_idx == -1:
+                return {"error": "无效的响应格式"}, 500
+                
+            json_str = response.text[start_idx:end_idx]
+            data = json.loads(json_str)
+            
+            # 提取建议词
+            suggestions = []
+            for result in data.get("AS", {}).get("Results", []):
+                for suggest in result.get("Suggests", []):
+                    suggestions.append({
+                        "text": suggest.get("Txt", ""),
+                        "type": suggest.get("Type", ""),
+                        "score": suggest.get("Sk", ""),
+                        "hcs": suggest.get("HCS", 0)
+                    })
+            
+            # 返回结构化结果
+            return {
+                "query": data.get("AS", {}).get("Query", ""),
+                "full_results": data.get("AS", {}).get("FullResults", 0),
+                "suggestions": suggestions
+            }
+            
+        except (json.JSONDecodeError, KeyError) as e:
+            return {"error": f"解析失败: {str(e)}"}, 500
+        
+    except requests.exceptions.RequestException as e:
+        return {"error": f"API请求失败: {str(e)}"}, 500
+
 @app.route('/search', methods=['GET', 'POST'])
 async def search():
     keywords, max_results = run()
@@ -24,21 +73,6 @@ async def search():
     with DDGS() as ddgs:
         # 使用DuckDuckGo搜索关键词
         ddgs_gen = ddgs.text(keywords, safesearch='Off', timelimit='y', backend="lite")
-        # 从搜索结果中获取最大结果数
-        for r in islice(ddgs_gen, max_results):
-            results.append(r)
-
-    # 返回一个json响应，包含搜索结果
-    return {'results': results}
-
-
-@app.route('/searchAnswers', methods=['GET', 'POST'])
-async def search_answers():
-    keywords, max_results = run()
-    results = []
-    with DDGS() as ddgs:
-        # 使用DuckDuckGo搜索关键词
-        ddgs_gen = ddgs.answers(keywords)
         # 从搜索结果中获取最大结果数
         for r in islice(ddgs_gen, max_results):
             results.append(r)
