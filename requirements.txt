@@ -19,3 +19,5 @@ Werkzeug==2.2.3
 yarl==1.9.2
 zipp==3.15.0
 flask[async]
+readability-lxml==0.8.1
+lxml==4.9.3
