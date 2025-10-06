@@ -110,7 +110,7 @@ async def fetch():
         "DNT": "1",
         "X-Retain-Images": "none",
         "X-Return-Format": "markdown",
-        "X-Token-Budget": str(max_results),
+        "X-Token-Budget": "200000",
     }
     async with aiohttp.ClientSession() as sess:
         async with sess.get(f"https://r.jina.ai/{url}", headers=headers) as r:
