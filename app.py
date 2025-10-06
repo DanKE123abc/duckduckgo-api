@@ -102,7 +102,7 @@ async def search_videos():
 
 @app.route('/fetch', methods=['GET', 'POST'])
 async def fetch():
-    keywords, max_results= run()
+    keywords, _ = run()
 
     url = keywords
     if not url:
@@ -112,7 +112,7 @@ async def fetch():
         "DNT": "1",
         "X-Retain-Images": "none",
         "X-Return-Format": "markdown",
-        "X-Token-Budget": str(max_results),
+        "X-Token-Budget": "200000",
     }
 
     async with aiohttp.ClientSession() as sess:
