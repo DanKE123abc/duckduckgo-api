@@ -112,7 +112,7 @@ async def fetch():
         "DNT": "1",
         "X-Retain-Images": "none",
         "X-Return-Format": "markdown",
-        "X-Token-Budget": max_results,
+        "X-Token-Budget": str(max_results),
     }
 
     async with aiohttp.ClientSession() as sess:
