@@ -118,7 +118,7 @@ async def fetch():
     async with aiohttp.ClientSession() as sess:
         async with sess.get(f"https://r.jina.ai/{url}", headers=headers) as r:
             r.raise_for_status()
-            raw_md = await r.text()
+            md = await r.text()
     
     return {"results": raw_md}
 
