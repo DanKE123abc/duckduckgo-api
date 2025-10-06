@@ -109,10 +109,16 @@ async def search_videos():
 async def fetch():
     keywords, max_results = run()
     url = keywords
+    if max_results:
+        if max_results<=100:
+            max_results=20000
+    else:
+        max_results = 20000
     headers = {
         "DNT": "1",
         "X-Retain-Images": "none",
         "X-Return-Format": "markdown",
+        "X-Token-Budget": str(max_results),
     }
     async with aiohttp.ClientSession() as sess:
         async with sess.get(f"https://r.jina.ai/{url}", headers=headers) as r:
@@ -130,8 +136,6 @@ async def fetch():
     if main:
         soup = BeautifulSoup(str(main), 'lxml')
     clean_md = mdify(str(soup), heading_style="ATX")
-    if max_results:                       # 0 或 None 均视为不截断
-        clean_md = '\n\n'.join(clean_md.split('\n\n')[:max_results])
     return {"results": clean_md}
 
 if __name__ == '__main__':
