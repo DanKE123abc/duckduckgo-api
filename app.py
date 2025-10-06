@@ -110,23 +110,24 @@ async def search_videos():
 async def fetch():
     keywords, max_results = run()
     url = keywords
-    if max_results:
-        if max_results<=100:
-            max_results=20000
-    else:
-        max_results = 20000
+    # 把 max_results 当“最大字数”用
+    try:
+        max_words = int(max_results) if max_results else 20000
+    except (ValueError, TypeError):
+        max_words = 20000
+
     headers = {
         "DNT": "1",
         "X-Retain-Images": "none",
         "X-Return-Format": "markdown",
-        "X-Token-Budget": str(max_results),
     }
     async with aiohttp.ClientSession() as sess:
         async with sess.get(f"https://r.jina.ai/{url}", headers=headers) as r:
             r.raise_for_status()
             raw_md = await r.text()
+
     html = markdown.markdown(raw_md, extensions=['extra', 'codehilite'])
-    soup = BeautifulSoup(html, 'lxml')   # 或者 'html.parser'
+    soup = BeautifulSoup(html, 'lxml')
     for a in soup.find_all('a'):
         a.unwrap()
     for img in soup.find_all('img'):
@@ -137,6 +138,15 @@ async def fetch():
     if main:
         soup = BeautifulSoup(str(main), 'lxml')
     clean_md = mdify(str(soup), heading_style="ATX")
+
+    # 直接截断最终 clean Markdown
+    if len(clean_md) > max_words:
+        clean_md = clean_md[:max_words]
+        # 防止把代码块或单词劈开，回退到最近空格
+        last_space = clean_md.rfind(' ')
+        if last_space > max_words * 0.9:
+            clean_md = clean_md[:last_space]
+
     return {"results": clean_md}
 
 if __name__ == '__main__':
