@@ -77,7 +77,7 @@ async def search_images():
     results = []
     with DDGS() as ddgs:
         # 使用DuckDuckGo搜索关键词
-        ddgs_gen = ddgs.images(keywords, safesearch='Off', timelimit=None)
+        ddgs_gen = ddgs.images(keywords)
         # 从搜索结果中获取最大结果数
         for r in islice(ddgs_gen, max_results):
             results.append(r)
@@ -92,7 +92,7 @@ async def search_videos():
     results = []
     with DDGS() as ddgs:
         # 使用DuckDuckGo搜索关键词
-        ddgs_gen = ddgs.videos(keywords, safesearch='Off', timelimit=None, resolution="high")
+        ddgs_gen = ddgs.videos(keywords)
         # 从搜索结果中获取最大结果数
         for r in islice(ddgs_gen, max_results):
             results.append(r)
@@ -102,7 +102,7 @@ async def search_videos():
 
 @app.route('/fetch', methods=['GET', 'POST'])
 async def fetch():
-    keywords, _ = run()
+    keywords, max_results= run()
 
     url = keywords
     if not url:
@@ -112,7 +112,7 @@ async def fetch():
         "DNT": "1",
         "X-Retain-Images": "none",
         "X-Return-Format": "markdown",
-        "X-Token-Budget": "200000",
+        "X-Token-Budget": max_results,
     }
 
     async with aiohttp.ClientSession() as sess:
