@@ -139,17 +139,5 @@ async def fetch():
     clean_md = mdify(str(soup), heading_style="ATX")
     return {"results": clean_md}
 
-@app.route('/num_tokens', methods=['GET', 'POST'])
-async num_tokens() -> int:
-    keywords, _ = run()
-    text = keywords
-    model = "gpt-4o"
-    try:
-        enc = tiktoken.encoding_for_model(model)
-    except KeyError:               
-        enc = tiktoken.get_encoding("cl100k_base")
-    return {"results": len(enc.encode(text))
-}
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
