@@ -107,7 +107,7 @@ async def search_videos():
 
 @app.route('/fetch', methods=['GET', 'POST'])
 async def fetch():
-    keywords, _ = run()
+    keywords, max_results = run()
     url = keywords
     headers = {
         "DNT": "1",
@@ -130,6 +130,8 @@ async def fetch():
     if main:
         soup = BeautifulSoup(str(main), 'lxml')
     clean_md = mdify(str(soup), heading_style="ATX")
+    if max_results:                       # 0 或 None 均视为不截断
+        clean_md = '\n\n'.join(clean_md.split('\n\n')[:max_results])
     return {"results": clean_md}
 
 if __name__ == '__main__':
