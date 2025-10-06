@@ -5,6 +5,9 @@ from urllib.parse import quote
 from ddgs import DDGS
 import re
 from flask import Flask, request
+import markdown
+from markdownify import markdownify as mdify
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
@@ -110,7 +113,7 @@ async def fetch():
         "DNT": "1",
         "X-Retain-Images": "none",
         "X-Return-Format": "markdown",
-        "X-Token-Budget": "200000",
+        "X-Token-Budget": str(max_results),
     }
     async with aiohttp.ClientSession() as sess:
         async with sess.get(f"https://r.jina.ai/{url}", headers=headers) as r:
