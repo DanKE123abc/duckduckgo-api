@@ -107,23 +107,31 @@ async def search_videos():
 
 @app.route('/fetch', methods=['GET', 'POST'])
 async def fetch():
-    keywords, _ = run()
-
+    keywords, max_results = run()
     url = keywords
-    if not url:
-        return jsonify(error="缺少 url 参数"), 400
-    
     headers = {
         "DNT": "1",
         "X-Retain-Images": "none",
         "X-Return-Format": "markdown",
-        "X-Token-Budget": "200000",
+        "X-Token-Budget": str(max_results),
     }
-
     async with aiohttp.ClientSession() as sess:
         async with sess.get(f"https://r.jina.ai/{url}", headers=headers) as r:
             r.raise_for_status()
-            return {"results": await r.text()}
+            raw_md = await r.text()
+    html = markdown.markdown(raw_md, extensions=['extra', 'codehilite'])
+    soup = BeautifulSoup(html, 'lxml')   # 或者 'html.parser'
+    for a in soup.find_all('a'):
+        a.unwrap()
+    for img in soup.find_all('img'):
+        img.decompose()
+    for noise in soup.select('header, footer, .advertisement, .sidebar'):
+        noise.decompose()
+    main = soup.find('article') or soup.find('main')
+    if main:
+        soup = BeautifulSoup(str(main), 'lxml')
+    clean_md = mdify(str(soup), heading_style="ATX")
+    return {"results": clean_md}
 
 
 if __name__ == '__main__':
