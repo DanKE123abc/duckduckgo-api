@@ -119,19 +119,8 @@ async def fetch():
         async with sess.get(f"https://r.jina.ai/{url}", headers=headers) as r:
             r.raise_for_status()
             raw_md = await r.text()
-    html = markdown.markdown(raw_md, extensions=['extra', 'codehilite'])
-    soup = BeautifulSoup(html, 'lxml')   # 或者 'html.parser'
-    for a in soup.find_all('a'):
-        a.unwrap()
-    for img in soup.find_all('img'):
-        img.decompose()
-    for noise in soup.select('header, footer, .advertisement, .sidebar'):
-        noise.decompose()
-    main = soup.find('article') or soup.find('main')
-    if main:
-        soup = BeautifulSoup(str(main), 'lxml')
-    clean_md = mdify(str(soup), heading_style="ATX")
-    return {"results": clean_md}
+    
+    return {"results": raw_md}
 
 
 if __name__ == '__main__':
