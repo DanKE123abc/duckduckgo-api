@@ -3,6 +3,7 @@ import json
 import aiohttp
 from urllib.parse import quote
 from ddgs import DDGS
+import re
 from flask import Flask, request
 
 app = Flask(__name__)
@@ -100,6 +101,7 @@ async def search_videos():
     # 返回一个json响应，包含搜索结果
     return {'results': results}
 
+
 @app.route('/fetch', methods=['GET', 'POST'])
 async def fetch():
     keywords, _ = run()
@@ -118,7 +120,15 @@ async def fetch():
     async with aiohttp.ClientSession() as sess:
         async with sess.get(f"https://r.jina.ai/{url}", headers=headers) as r:
             r.raise_for_status()
-            return {"results": await r.text()}
+            md = await r.text()
+
+            # 1. 去掉行内链接 [text](url)
+            md = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', md, flags=re.MULTILINE)
+            # 2. 去掉裸链 <http...> 或 https://...
+            md = re.sub(r'<https?://[^>]+>', '', md, flags=re.MULTILINE)
+            md = re.sub(r'https?://\S+', '', md, flags=re.MULTILINE)
+
+            return {"results": md}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
