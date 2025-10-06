@@ -107,7 +107,7 @@ async def search_videos():
 
 @app.route('/fetch', methods=['GET', 'POST'])
 async def fetch():
-    keywords, max_results = run()
+    keywords, _ = run()
     url = keywords
     headers = {
         "DNT": "1",
