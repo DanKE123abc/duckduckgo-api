@@ -108,19 +108,22 @@ async def search_videos():
 @app.route('/fetch', methods=['GET', 'POST'])
 async def fetch():
     keywords, _ = run()
+
     url = keywords
+    if not url:
+        return jsonify(error="缺少 url 参数"), 400
+    
     headers = {
         "DNT": "1",
         "X-Retain-Images": "none",
         "X-Return-Format": "markdown",
-        "X-Token-Budget": "20000",
+        "X-Token-Budget": "200000",
     }
+
     async with aiohttp.ClientSession() as sess:
         async with sess.get(f"https://r.jina.ai/{url}", headers=headers) as r:
             r.raise_for_status()
-            md = await r.text()
-    
-    return {"results": raw_md}
+            return {"results": await r.text()}
 
 
 if __name__ == '__main__':
