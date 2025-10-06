@@ -2,7 +2,7 @@ from itertools import islice
 import json
 import aiohttp
 from urllib.parse import quote
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from flask import Flask, request
 
 app = Flask(__name__)
@@ -99,6 +99,25 @@ async def search_videos():
     # 返回一个json响应，包含搜索结果
     return {'results': results}
 
+@app.route('/fetch', methods=['GET', 'POST'])
+async def fetch():
+    keywords, _ = run()
+
+    url = keywords
+    if not url:
+        return jsonify(error="缺少 url 参数"), 400
+    
+    headers = {
+        "DNT": "1",
+        "X-Retain-Images": "none",
+        "X-Return-Format": "markdown",
+        "X-Token-Budget": "200000",
+    }
+
+    async with aiohttp.ClientSession() as sess:
+        async with sess.get(f"https://r.jina.ai/{url}", headers=headers) as r:
+            r.raise_for_status()
+            return {"results": await r.text()}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
